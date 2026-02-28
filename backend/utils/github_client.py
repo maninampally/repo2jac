@@ -2,8 +2,8 @@ import os
 from github import Github
 from github.GithubException import UnknownObjectException
 
-# Read from env — pipeline.py controls the actual cap
-MAX_FILES  = int(os.getenv("MAX_FILES", 50))
+# Read from env — must match pipeline.py default
+MAX_FILES  = int(os.getenv("MAX_FILES", 50))  # fetch limit; pipeline caps separately
 SKIP_DIRS  = {"__pycache__", ".git", "tests", "test", "migrations", "venv", ".venv", "node_modules", "dist", "build"}
 SKIP_FILES = {"setup.py", "conftest.py", "manage.py"}
 

@@ -26,10 +26,8 @@ jobs:
         working-directory: backend
         run: |
           pip install --upgrade pip
-          # Install a subset of deps needed for syntax/import checks
-          # (skip jaclang — heavy and not needed for CI checks)
-          pip install fastapi uvicorn pydantic python-dotenv \
-                      anthropic PyGithub aiofiles requests httpx
+          # Install from requirements.txt but skip jaclang (heavy runtime dep, not needed for CI checks)
+          grep -v '^jaclang' requirements.txt | pip install -r /dev/stdin
 
       - name: Syntax check all Python files
         working-directory: backend
@@ -53,8 +51,8 @@ jobs:
       - name: Validate docker-compose syntax
         working-directory: .
         run: |
-          pip install docker-compose 2>/dev/null || true
-          python -c "import yaml; yaml.safe_load(open('docker-compose.yml'))" && echo "✅ docker-compose.yml is valid YAML"
+          pip install pyyaml --quiet
+          python -c "import yaml; yaml.safe_load(open('docker-compose.yml')); print('✅ docker-compose.yml is valid YAML')"
 
   # ── Frontend: Next.js build check ───────────────────────────
   frontend:
@@ -78,7 +76,9 @@ jobs:
       - name: Build Next.js app
         working-directory: frontend
         env:
-          # Dummy value — build will succeed without a real backend
+          # INTERNAL_API_URL is read server-side by next.config.js rewrites
+          # NEXT_PUBLIC_API_URL kept for any client-side fallback references
+          INTERNAL_API_URL: http://localhost:8000
           NEXT_PUBLIC_API_URL: http://localhost:8000
         run: npm run build
 

@@ -28,9 +28,10 @@ except Exception as e:
 async def global_exception_handler(request: Request, exc: Exception):
     tb = traceback.format_exc()
     print(f"❌ Unhandled error:\n{tb}")
+    # Never expose traceback details to the client
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc), "traceback": tb}
+        content={"detail": "Internal server error. Check backend logs."}
     )
 
 

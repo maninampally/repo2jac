@@ -13,6 +13,8 @@ services:
     volumes:
       - ./backend:/app
       - /tmp:/tmp
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -26,11 +28,18 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      # Server-side var — read at runtime by next.config.js rewrites
+      # Must use Docker service name, NOT localhost
+      - INTERNAL_API_URL=http://backend:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+    networks:
+      - app-network
     depends_on:
       backend:
         condition: service_healthy
+networks:
+  app-network:
+    driver: bridge

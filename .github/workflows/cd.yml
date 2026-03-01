@@ -19,6 +19,11 @@ jobs:
     # Run only if the CI workflow concluded successfully
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
+    env:
+      # Optional: set DOCKERHUB_NAMESPACE secret when pushing to an org namespace.
+      # If unset, defaults to the login username.
+      DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_NAMESPACE || secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,10 +53,10 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:${{ steps.tags.outputs.short_sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:latest
-          cache-to: type=inline
+            ${{ env.DOCKERHUB_NAMESPACE }}/repo2jac-backend:latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/repo2jac-backend:${{ steps.tags.outputs.short_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -60,7 +65,7 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:${{ steps.tags.outputs.short_sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:latest
-          cache-to: type=inline
+            ${{ env.DOCKERHUB_NAMESPACE }}/repo2jac-frontend:latest
+            ${{ env.DOCKERHUB_NAMESPACE }}/repo2jac-frontend:${{ steps.tags.outputs.short_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

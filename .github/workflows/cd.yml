@@ -1,0 +1,66 @@
+name: CD
+
+# Build & push Docker images only after CI passes on main
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dockerhub:
+    name: Build & Push Images (Docker Hub)
+    runs-on: ubuntu-latest
+
+    # Run only if the CI workflow concluded successfully
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Derive tags
+        id: tags
+        shell: bash
+        run: |
+          SHORT_SHA="$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:${{ steps.tags.outputs.short_sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-backend:latest
+          cache-to: type=inline
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:${{ steps.tags.outputs.short_sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/repo2jac-frontend:latest
+          cache-to: type=inline
